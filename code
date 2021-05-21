@@ -1,0 +1,209 @@
+import random
+class RSA_ALGORITHM:
+
+  # Generating Prime Numbers
+  def finding_generated_primes(self):
+    generated_primes = []
+    while len(generated_primes) < 2:
+      num = random.randint(32768, 65535)
+      is_prime = self.checkForPrime(num)
+      if is_prime:
+        generated_primes.append(num)
+    print('Generated Primes are',generated_primes)
+    return generated_primes
+
+  
+  # Primality Test
+  def checkForPrime(self, a):
+    range_check = a
+    if a%2 != 0:
+      range_check=a+1
+    for i in range(2,int(range_check/2)):
+      if a%i == 0:
+        break
+      else:
+        return True
+      return False
+  
+  # Check for Co Primes
+  def check_for_coprime(self, num1, num2):
+    if num1 > num2:
+      temp = num2
+    else:
+      temp = num1
+    for i in range(1, temp +1):
+      if((num1 % i == 0) and (num2 % i == 0)):
+        gcd = i
+        if gcd == 1:
+          return gcd    
+
+  # Generating the Public Key
+  def get_public_key_e(self, product_of_primes_value):
+    while True:
+      rand_value  = random.randrange(product_of_primes_value)
+      isCoPrime = self.check_for_coprime(rand_value, product_of_primes_value)
+      if isCoPrime == 1:
+        return rand_value
+
+  # Calculating the Modular inverse
+  def recur_mod_inv_calc(self, x, y):
+    if x == 0:
+      return y, 0, 1
+    else:
+      num1 = y % x
+      t, a, b = self.recur_mod_inv_calc(num1, x)
+      num2 = a - (y // x) * b
+      return t, num2, b
+
+  def find_modular_inverse(self, e, Phi_N):
+    num1, a, b = self.recur_mod_inv_calc(e, Phi_N)
+    if num1 != 1:
+      raise Exception('The modular inverse does not exist')
+    else:
+      mod_inv = a % Phi_N
+      return mod_inv
+  
+  # Converting the message string to integers for Encryption
+  def convert_message_to_integers(self, message_bits):
+    message_hexa =[]
+    for i in message_bits:
+      message_hexa.append((i.encode('utf-8')).hex())
+
+    print ('The hexadecimal values for the message is ', message_hexa)
+    message_int= []
+    for i in message_hexa:
+      message_int.append (int(i,16))
+
+    print ('The integer values for the message is ', message_int)
+    return message_int
+
+  # Square and Multipy Method
+  def encr_func(self, a, b, N, user_input):
+    exponent = bin(b)
+    enc_msg = []
+    for m in a:
+      val_to_check = m 
+      for i in range(3, len(exponent)):
+          val_to_check = (val_to_check * val_to_check) % N
+          if(exponent[i:i+1]=='1'):
+              val_to_check = (val_to_check * m) % N                              
+      enc_msg.append(val_to_check)
+    if(user_input == '1'):
+      print('The Encrypted message is ', enc_msg)
+    elif (user_input == '3'):
+      print('The Encrypted signature is ', enc_msg)
+    return enc_msg
+
+  @staticmethod
+  # Square and Multipy Method
+  def decr_func(a, b, N):    
+    exponent = bin(b)
+    val_to_check = a 
+    for i in range(3, len(exponent)):
+        val_to_check = (val_to_check * val_to_check)%N
+        if(exponent[i:i+1]=='1'):          
+            val_to_check = (val_to_check*a)%N
+    return val_to_check
+
+  # Converting input integer to string
+  def decrypt_message_func(self, int_value):
+    hex_string = hex(int_value)[2:]
+    bytes_object = bytes.fromhex(hex_string)
+    ascii_string = bytes_object.decode("ASCII")
+    return ascii_string
+
+  #def expo_calc(x, y, N):
+   # exp = bin(y)
+    #value = x 
+    #for i in range(3, len(exp)):
+     #   value = (value * value)%N
+      #  if(exp[i:i+1]=='1'):
+       #     value = (value*x)%N
+    #return value
+  
+  #def decrypt_sign(self, int_value):
+   # hex_string = hex(int_value)[2:]
+    #bytes_object = bytes.fromhex(hex_string)
+    #ascii_string = bytes_object.decode("ASCII")
+    #return ascii_string
+  
+rsa_algo = RSA_ALGORITHM()
+while True:
+  user_input = input('''Please select the operation to be performed
+    1. To encrypt a message
+    2. To decrypt a message
+    3. To Sign
+    4. To Verify
+    5. exit
+
+    ''')
+  
+  if user_input == '5':
+    print('exit')
+    break
+
+  a,b= rsa_algo.finding_generated_primes()
+  print('p = ', a)
+  print('q = ', b)
+  N = a*b
+  print('product of the primes N = ', N)
+  Phi_N = (a-1)*(b-1)
+  e = rsa_algo.get_public_key_e(Phi_N)
+  while e > 0:
+    try:
+      d = rsa_algo.find_modular_inverse(e, Phi_N)
+      break
+    except:
+      e = rsa_algo.get_public_key_e(Phi_N)
+  print('Phi(N) = ',Phi_N)  
+  print('The Public key (e) = ', e)
+  print('The Private key (d) = ', d)
+
+  if user_input == '1':
+    # Encryption algorithm
+    input_message = input('Please enter the message to be encrypted  ')
+    N=int(input('Enter the value of N   '))
+    e=int(input('Enter the value of e   '))
+    message_bits = [input_message[i:i+3] for i in range(0, len(input_message), 3)]
+    print('The Message bits are = ' , message_bits)
+    message_int = rsa_algo.convert_message_to_integers(message_bits)
+    enc_integer_list = rsa_algo.encr_func(message_int, e , N, user_input)
+
+  elif user_input == '2':
+    # Decryption
+    encr_integer_list = eval(input('Enter list of integer numbers of the encrypted message   '))
+    print('input integers are',encr_integer_list )
+    N=int(input('Enter the value of N   '))
+    d=int(input('Enter the value of d   '))
+    decr_integer_list = [rsa_algo.decr_func(m, d, N) for m in encr_integer_list]
+    print('Message in Decrypted_Chunks =   ',decr_integer_list)
+    decrypted_message = ''.join([rsa_algo.decrypt_message_func(i) for i in decr_integer_list])
+    print('Decrypted Message =  ', decrypted_message)
+    hex_string = [hex(i) for i in decr_integer_list]
+    print(hex_string)
+
+  elif user_input == '3':
+    # Signing algorithm
+    input_name = input('Please enter your name  ')
+    N=int(input('Enter the value of N   '))
+    d=int(input('Enter the value of d   '))
+    name_bits = [input_name[i:i+3] for i in range(0, len(input_name), 3)]
+    print('The signing name in chunks is = ' , name_bits)
+    name_integer = rsa_algo.convert_message_to_integers(name_bits)
+    enc_integer_list = rsa_algo.encr_func(name_integer, d , N, user_input)
+
+  elif user_input == '4':
+    # Verifying
+    enc_sign_int_list = eval(input('Please enter the signature in encrypted form   '))
+    N=int(input('Enter the value of N   '))
+    e=int(input('Enter the value of e   '))
+    orig_sign = input('Enter the original signature    ')
+    dec_sign_int_list = [rsa_algo.decr_func(m, e, N) for m in enc_sign_int_list]
+    decr_sign = ''.join([rsa_algo.decrypt_message_func(i) for i in dec_sign_int_list])
+    print('The decrypted signature is =   ', decr_sign)
+    if orig_sign == decr_sign:
+      print('The Signature is verified')
+    else:
+      print('The Signature is not verified')
+    hex_string = [hex(i) for i in dec_sign_int_list]
+    print(hex_string)
